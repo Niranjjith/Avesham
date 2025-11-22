@@ -2,7 +2,7 @@ let selectedTicketType = null;
 let selectedTicketPrice = 0;
 
 // Backend URL
-const backendUrl = "http://localhost:5000/api/payment";
+const backendUrl = "https://YOUR-BACKEND-RENDER-URL/api/payment";
 
 // Razorpay Key
 const RAZORPAY_KEY_ID = "rzp_test_RigiSw2saEwTtc";
