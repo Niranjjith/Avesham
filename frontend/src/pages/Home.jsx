@@ -127,28 +127,11 @@ function Home() {
           })
 
           if (result.status === 'success') {
-            setBookingData(result.booking)
+            setBookingData({
+              ...result.booking,
+              downloadUrl: result.downloadUrl
+            })
             setShowSuccess(true)
-            
-            // Download PDF if available
-            if (result.pdfBase64) {
-              try {
-                const pdfBlob = new Blob(
-                  [Uint8Array.from(atob(result.pdfBase64), c => c.charCodeAt(0))],
-                  { type: 'application/pdf' }
-                )
-                const url = URL.createObjectURL(pdfBlob)
-                const link = document.createElement('a')
-                link.href = url
-                link.download = `Avesham_Ticket_${result.booking.serialNumber}.pdf`
-                document.body.appendChild(link)
-                link.click()
-                document.body.removeChild(link)
-                URL.revokeObjectURL(url)
-              } catch (pdfError) {
-                console.error('PDF download error:', pdfError)
-              }
-            }
             
             // Reset form
             setFormData({ fullName: '', email: '', phone: '', quantity: '' })
@@ -376,10 +359,31 @@ function Home() {
             <div className="success-icon">✓</div>
             <h3>Booking Confirmed!</h3>
             <p>Thank you for your booking!</p>
-            <div style={{ margin: '15px 0', padding: '10px', background: '#f0f9ff', borderRadius: '8px' }}>
-              <p style={{ margin: '5px 0', fontWeight: 'bold' }}>Serial Number: {bookingData.serialNumber}</p>
-              <p style={{ margin: '5px 0' }}>Your ticket PDF has been downloaded automatically.</p>
-              <p style={{ margin: '5px 0', fontSize: '14px', color: '#666' }}>A confirmation email has been sent to your email address.</p>
+            <div style={{ margin: '15px 0', padding: '15px', background: '#f0f9ff', borderRadius: '8px', border: '2px solid #2563eb' }}>
+              <p style={{ margin: '5px 0', fontWeight: 'bold', fontSize: '16px' }}>Serial Number: {bookingData.serialNumber}</p>
+              <p style={{ margin: '10px 0', fontSize: '14px' }}>Download your ticket PDF using the link below:</p>
+              {bookingData.downloadUrl && (
+                <a
+                  href={bookingData.downloadUrl}
+                  download
+                  style={{
+                    display: 'inline-block',
+                    padding: '12px 24px',
+                    background: '#2563eb',
+                    color: 'white',
+                    textDecoration: 'none',
+                    borderRadius: '6px',
+                    fontWeight: 'bold',
+                    marginTop: '10px',
+                    transition: '0.3s'
+                  }}
+                  onMouseOver={(e) => e.target.style.background = '#1d4ed8'}
+                  onMouseOut={(e) => e.target.style.background = '#2563eb'}
+                >
+                  📥 Download Ticket PDF
+                </a>
+              )}
+              <p style={{ margin: '10px 0 0 0', fontSize: '13px', color: '#666' }}>A confirmation email with download link has been sent to your email address.</p>
             </div>
             <button className="close-popup-btn" onClick={() => {
               setShowSuccess(false)

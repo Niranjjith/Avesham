@@ -34,7 +34,13 @@ RAZORPAY_KEY_ID=rzp_test_xxxxxxxxxxxxx
 RAZORPAY_SECRET=your_razorpay_secret
 MAIL_USER=your-email@gmail.com
 MAIL_PASS=your-app-password
+BASE_URL=http://localhost:5000
 PORT=5000
+```
+
+**For Production:**
+```env
+BASE_URL=https://your-domain.com
 ```
 
 **For MongoDB Atlas (Cloud):**

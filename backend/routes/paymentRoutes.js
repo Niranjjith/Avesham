@@ -76,36 +76,30 @@ router.post("/verify-payment", async (req, res) => {
       serialNumber
     });
 
-    // Generate PDF ticket
-    const pdfBuffer = await generateTicketPDF({
-      serialNumber,
-      fullName,
-      email,
-      phone,
-      ticketType: normalizedTicketType,
-      quantity,
-      totalAmount,
-      paymentId: payment_id,
-      timestamp: booking.timestamp
-    });
+    // Generate download URL for ticket PDF
+    const baseUrl = process.env.BASE_URL || `http://${req.get('host')}`;
+    const downloadUrl = `${baseUrl}/api/public/download-ticket/${serialNumber}`;
 
-    // Convert PDF buffer to base64 for frontend download
-    const pdfBase64 = pdfBuffer.toString('base64');
-
-    // Send email to customer
-    await sendTicketMail(
-      email,
-      fullName,
-      serialNumber,
-      normalizedTicketType,
-      quantity,
-      payment_id
-    );
+    // Send simple confirmation email (without PDF)
+    try {
+      await sendTicketMail(
+        email,
+        fullName,
+        serialNumber,
+        normalizedTicketType,
+        quantity,
+        payment_id,
+        downloadUrl
+      );
+    } catch (emailError) {
+      console.error("Email sending error (non-critical):", emailError);
+      // Don't fail the payment if email fails
+    }
 
     res.json({ 
       status: "success", 
       booking,
-      pdfBase64 // Send PDF as base64 for frontend download
+      downloadUrl // Send download URL instead of base64 PDF
     });
   } catch (error) {
     console.error("Payment verification error:", error);
