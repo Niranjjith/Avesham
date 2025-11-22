@@ -238,6 +238,58 @@ function AdminDashboard() {
     navigate('/')
   }
 
+  const deleteAllBookings = async () => {
+    // Double confirmation
+    const confirm1 = window.confirm(
+      '⚠️ WARNING: This will delete ALL bookings permanently!\n\n' +
+      'This action cannot be undone. Are you sure you want to continue?'
+    )
+    
+    if (!confirm1) return
+
+    const confirm2 = window.confirm(
+      '⚠️ FINAL CONFIRMATION\n\n' +
+      'You are about to delete ALL booking data. This is irreversible.\n\n' +
+      'Type "DELETE ALL" in the next prompt to confirm.'
+    )
+    
+    if (!confirm2) return
+
+    const confirmText = window.prompt(
+      'Type "DELETE ALL" (in uppercase) to confirm deletion:'
+    )
+
+    if (confirmText !== 'DELETE ALL') {
+      alert('Deletion cancelled. Confirmation text did not match.')
+      return
+    }
+
+    try {
+      setLoading(true)
+      const res = await fetch(`${ADMIN_API_URL}/delete-all-bookings`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      const data = await res.json()
+
+      if (data.status === 'success') {
+        alert(`Successfully deleted ${data.deletedCount} booking(s)`)
+        // Reload dashboard data
+        loadAdmin()
+      } else {
+        alert(data.message || 'Failed to delete bookings')
+      }
+    } catch (error) {
+      console.error('Delete error:', error)
+      alert('Failed to delete bookings. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div style={{
       margin: 0,
@@ -313,6 +365,25 @@ function AdminDashboard() {
             }}
           >
             Download Excel
+          </button>
+          <button
+            onClick={deleteAllBookings}
+            disabled={loading}
+            style={{
+              background: '#dc2626',
+              color: 'white',
+              border: 'none',
+              fontWeight: 600,
+              padding: '10px 18px',
+              borderRadius: '8px',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              transition: '0.3s',
+              fontSize: '15px',
+              opacity: loading ? 0.6 : 1
+            }}
+            title="Delete all bookings (irreversible)"
+          >
+            🗑️ Delete All Data
           </button>
           <button
             onClick={logout}
@@ -608,44 +679,65 @@ function AdminDashboard() {
                   </td>
                   <td style={{ padding: '10px', textAlign: 'center' }}>
                     {booking.serialNumber && (
-                      <button
-                        onClick={async () => {
-                          try {
-                            const token = localStorage.getItem('adminToken')
-                            const res = await fetch(`${ADMIN_API_URL}/download-ticket/${booking.serialNumber}`, {
-                              headers: { 'Authorization': `Bearer ${token}` }
-                            })
-                            if (res.ok) {
-                              const blob = await res.blob()
-                              const url = URL.createObjectURL(blob)
-                              const link = document.createElement('a')
-                              link.href = url
-                              link.download = `Avesham_Ticket_${booking.serialNumber}.pdf`
-                              document.body.appendChild(link)
-                              link.click()
-                              document.body.removeChild(link)
-                              URL.revokeObjectURL(url)
-                            } else {
+                      <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                        <button
+                          onClick={() => {
+                            window.open(`/success?serial=${booking.serialNumber}`, '_blank')
+                          }}
+                          style={{
+                            background: '#2563eb',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '6px',
+                            padding: '6px 12px',
+                            cursor: 'pointer',
+                            fontSize: '12px',
+                            fontWeight: 600
+                          }}
+                          title="View success page"
+                        >
+                          👁️ View
+                        </button>
+                        <button
+                          onClick={async () => {
+                            try {
+                              const token = localStorage.getItem('adminToken')
+                              const res = await fetch(`${ADMIN_API_URL}/download-ticket/${booking.serialNumber}`, {
+                                headers: { 'Authorization': `Bearer ${token}` }
+                              })
+                              if (res.ok) {
+                                const blob = await res.blob()
+                                const url = URL.createObjectURL(blob)
+                                const link = document.createElement('a')
+                                link.href = url
+                                link.download = `Avesham_Ticket_${booking.serialNumber}.pdf`
+                                document.body.appendChild(link)
+                                link.click()
+                                document.body.removeChild(link)
+                                URL.revokeObjectURL(url)
+                              } else {
+                                alert('Failed to download ticket PDF')
+                              }
+                            } catch (err) {
+                              console.error('Download error:', err)
                               alert('Failed to download ticket PDF')
                             }
-                          } catch (err) {
-                            console.error('Download error:', err)
-                            alert('Failed to download ticket PDF')
-                          }
-                        }}
-                        style={{
-                          background: '#10b981',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '6px',
-                          padding: '6px 12px',
-                          cursor: 'pointer',
-                          fontSize: '12px',
-                          fontWeight: 600
-                        }}
-                      >
-                        📥 PDF
-                      </button>
+                          }}
+                          style={{
+                            background: '#10b981',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '6px',
+                            padding: '6px 12px',
+                            cursor: 'pointer',
+                            fontSize: '12px',
+                            fontWeight: 600
+                          }}
+                          title="Download PDF"
+                        >
+                          📥 PDF
+                        </button>
+                      </div>
                     )}
                   </td>
                 </tr>

@@ -255,4 +255,23 @@ router.post("/verify-qr", verifyAdmin, async (req, res) => {
     }
 });
 
+// DELETE ALL BOOKINGS
+router.delete("/delete-all-bookings", verifyAdmin, async (req, res) => {
+    try {
+        const result = await Booking.deleteMany({});
+        
+        res.json({
+            status: "success",
+            message: `Successfully deleted ${result.deletedCount} booking(s)`,
+            deletedCount: result.deletedCount
+        });
+    } catch (err) {
+        console.error("Delete All Bookings Error:", err);
+        res.status(500).json({
+            status: "error",
+            message: "Failed to delete bookings"
+        });
+    }
+});
+
 export default router;

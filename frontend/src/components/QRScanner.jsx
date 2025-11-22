@@ -6,8 +6,20 @@ function QRScanner({ onClose, onVerify }) {
   const [isScanning, setIsScanning] = useState(false)
   const [error, setError] = useState('')
   const [verificationResult, setVerificationResult] = useState(null)
+  const [qrBoxSize, setQrBoxSize] = useState(250)
   const scannerRef = useRef(null)
   const html5QrCodeRef = useRef(null)
+
+  // Calculate responsive QR box size
+  useEffect(() => {
+    const updateQrBoxSize = () => {
+      const screenWidth = window.innerWidth
+      setQrBoxSize(screenWidth < 480 ? Math.min(screenWidth - 60, 250) : 250)
+    }
+    updateQrBoxSize()
+    window.addEventListener('resize', updateQrBoxSize)
+    return () => window.removeEventListener('resize', updateQrBoxSize)
+  }, [])
 
   useEffect(() => {
     return () => {
@@ -30,7 +42,7 @@ function QRScanner({ onClose, onVerify }) {
         { facingMode: "environment" }, // Use back camera
         {
           fps: 10,
-          qrbox: { width: 250, height: 250 }
+          qrbox: { width: qrBoxSize, height: qrBoxSize }
         },
         (decodedText, decodedResult) => {
           // QR code scanned successfully
@@ -106,24 +118,32 @@ function QRScanner({ onClose, onVerify }) {
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
-      padding: '20px'
+      padding: '10px',
+      overflow: 'auto'
     }}>
       <div style={{
         background: 'white',
         borderRadius: '12px',
-        padding: '20px',
+        padding: '15px',
         maxWidth: '500px',
         width: '100%',
-        maxHeight: '90vh',
-        overflow: 'auto'
+        maxHeight: '95vh',
+        overflow: 'auto',
+        boxSizing: 'border-box'
       }}>
         <div style={{
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          marginBottom: '20px'
+          marginBottom: '15px',
+          flexWrap: 'wrap',
+          gap: '10px'
         }}>
-          <h2 style={{ margin: 0, color: '#0e2b64' }}>QR Code Scanner</h2>
+          <h2 style={{ 
+            margin: 0, 
+            color: '#0e2b64',
+            fontSize: 'clamp(18px, 4vw, 24px)'
+          }}>QR Code Scanner</h2>
           <button
             onClick={() => {
               stopScanning()
@@ -136,7 +156,8 @@ function QRScanner({ onClose, onVerify }) {
               borderRadius: '8px',
               padding: '8px 16px',
               cursor: 'pointer',
-              fontSize: '16px'
+              fontSize: 'clamp(14px, 3vw, 16px)',
+              whiteSpace: 'nowrap'
             }}
           >
             ✕ Close
@@ -152,10 +173,12 @@ function QRScanner({ onClose, onVerify }) {
                 color: 'white',
                 border: 'none',
                 borderRadius: '8px',
-                padding: '12px 24px',
+                padding: '12px 20px',
                 cursor: 'pointer',
-                fontSize: '16px',
-                fontWeight: 600
+                fontSize: 'clamp(14px, 3vw, 16px)',
+                fontWeight: 600,
+                width: '100%',
+                maxWidth: '400px'
               }}
             >
               📷 Open Camera & Start Scanning
@@ -172,10 +195,12 @@ function QRScanner({ onClose, onVerify }) {
                 color: 'white',
                 border: 'none',
                 borderRadius: '8px',
-                padding: '12px 24px',
+                padding: '12px 20px',
                 cursor: 'pointer',
-                fontSize: '16px',
-                fontWeight: 600
+                fontSize: 'clamp(14px, 3vw, 16px)',
+                fontWeight: 600,
+                width: '100%',
+                maxWidth: '400px'
               }}
             >
               ⏹ Stop Scanning
@@ -187,10 +212,11 @@ function QRScanner({ onClose, onVerify }) {
           id="qr-reader"
           style={{
             width: '100%',
-            minHeight: '300px',
-            marginBottom: '20px',
+            minHeight: qrBoxSize < 250 ? '250px' : '300px',
+            marginBottom: '15px',
             borderRadius: '8px',
-            overflow: 'hidden'
+            overflow: 'hidden',
+            position: 'relative'
           }}
         ></div>
 
@@ -224,19 +250,20 @@ function QRScanner({ onClose, onVerify }) {
             {verificationResult.status === 'valid' && verificationResult.booking && (
               <div style={{
                 marginTop: '15px',
-                padding: '10px',
+                padding: '12px',
                 background: 'white',
                 borderRadius: '6px',
-                fontSize: '14px'
+                fontSize: 'clamp(12px, 2.5vw, 14px)',
+                overflow: 'auto'
               }}>
-                <p><strong>Serial Number:</strong> {verificationResult.booking.serialNumber}</p>
-                <p><strong>Name:</strong> {verificationResult.booking.fullName}</p>
-                <p><strong>Email:</strong> {verificationResult.booking.email}</p>
-                <p><strong>Phone:</strong> {verificationResult.booking.phone}</p>
+                <p style={{ wordBreak: 'break-word' }}><strong>Serial Number:</strong> {verificationResult.booking.serialNumber}</p>
+                <p style={{ wordBreak: 'break-word' }}><strong>Name:</strong> {verificationResult.booking.fullName}</p>
+                <p style={{ wordBreak: 'break-word' }}><strong>Email:</strong> {verificationResult.booking.email}</p>
+                <p style={{ wordBreak: 'break-word' }}><strong>Phone:</strong> {verificationResult.booking.phone}</p>
                 <p><strong>Ticket Type:</strong> {verificationResult.booking.ticketType}</p>
                 <p><strong>Quantity:</strong> {verificationResult.booking.quantity}</p>
                 <p><strong>Amount:</strong> ₹{verificationResult.booking.totalAmount}</p>
-                <p><strong>Payment ID:</strong> {verificationResult.booking.paymentId}</p>
+                <p style={{ wordBreak: 'break-word' }}><strong>Payment ID:</strong> {verificationResult.booking.paymentId}</p>
                 <p><strong>Booking Date:</strong> {new Date(verificationResult.booking.timestamp).toLocaleString()}</p>
               </div>
             )}
@@ -255,8 +282,10 @@ function QRScanner({ onClose, onVerify }) {
                 borderRadius: '8px',
                 padding: '10px 20px',
                 cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: 600
+                fontSize: 'clamp(13px, 2.5vw, 14px)',
+                fontWeight: 600,
+                width: '100%',
+                maxWidth: '400px'
               }}
             >
               Scan Another QR Code
@@ -265,10 +294,11 @@ function QRScanner({ onClose, onVerify }) {
         )}
 
         <div style={{
-          fontSize: '12px',
+          fontSize: 'clamp(11px, 2vw, 12px)',
           color: '#666',
           textAlign: 'center',
-          marginTop: '20px'
+          marginTop: '15px',
+          padding: '0 10px'
         }}>
           <p>Position the QR code within the camera view to scan</p>
         </div>
@@ -278,4 +308,5 @@ function QRScanner({ onClose, onVerify }) {
 }
 
 export default QRScanner
+
 

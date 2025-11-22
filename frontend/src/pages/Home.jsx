@@ -15,10 +15,8 @@ function Home() {
     phone: '',
     quantity: ''
   })
-  const [showSuccess, setShowSuccess] = useState(false)
   const [activeFaq, setActiveFaq] = useState(null)
   const [showScrollTop, setShowScrollTop] = useState(false)
-  const [bookingData, setBookingData] = useState(null)
   const bookingRef = useRef(null)
   const priceRefreshInterval = useRef(null)
 
@@ -127,15 +125,19 @@ function Home() {
           })
 
           if (result.status === 'success') {
-            setBookingData({
+            // Store booking data in localStorage for success page
+            const bookingData = {
               ...result.booking,
               downloadUrl: result.downloadUrl
-            })
-            setShowSuccess(true)
+            }
+            localStorage.setItem('lastBooking', JSON.stringify(bookingData))
             
             // Reset form
             setFormData({ fullName: '', email: '', phone: '', quantity: '' })
             setSelectedTicket(null)
+            
+            // Navigate to success page
+            navigate(`/success?serial=${result.booking.serialNumber}`)
           } else {
             alert('Payment verification failed')
           }
@@ -350,48 +352,6 @@ function Home() {
           </div>
         </div>
       </footer>
-
-      {/* Success Popup */}
-      {showSuccess && bookingData && (
-        <>
-          <div className="overlay show" onClick={() => setShowSuccess(false)}></div>
-          <div className="success-popup show">
-            <div className="success-icon">✓</div>
-            <h3>Booking Confirmed!</h3>
-            <p>Thank you for your booking!</p>
-            <div style={{ margin: '15px 0', padding: '15px', background: '#f0f9ff', borderRadius: '8px', border: '2px solid #2563eb' }}>
-              <p style={{ margin: '5px 0', fontWeight: 'bold', fontSize: '16px' }}>Serial Number: {bookingData.serialNumber}</p>
-              <p style={{ margin: '10px 0', fontSize: '14px' }}>Download your ticket PDF using the link below:</p>
-              {bookingData.downloadUrl && (
-                <a
-                  href={bookingData.downloadUrl}
-                  download
-                  style={{
-                    display: 'inline-block',
-                    padding: '12px 24px',
-                    background: '#2563eb',
-                    color: 'white',
-                    textDecoration: 'none',
-                    borderRadius: '6px',
-                    fontWeight: 'bold',
-                    marginTop: '10px',
-                    transition: '0.3s'
-                  }}
-                  onMouseOver={(e) => e.target.style.background = '#1d4ed8'}
-                  onMouseOut={(e) => e.target.style.background = '#2563eb'}
-                >
-                  📥 Download Ticket PDF
-                </a>
-              )}
-              <p style={{ margin: '10px 0 0 0', fontSize: '13px', color: '#666' }}>A confirmation email with download link has been sent to your email address.</p>
-            </div>
-            <button className="close-popup-btn" onClick={() => {
-              setShowSuccess(false)
-              setBookingData(null)
-            }}>Close</button>
-          </div>
-        </>
-      )}
 
       {/* Admin Button */}
       <div className="admin-access">
