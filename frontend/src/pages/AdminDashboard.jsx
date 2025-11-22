@@ -67,7 +67,6 @@ function AdminDashboard() {
   }
 
   const updatePrices = async () => {
-    // Get values directly from input elements to ensure we have the latest values
     const dayPriceInput = document.getElementById('dayPassPrice')
     const seasonPriceInput = document.getElementById('seasonPassPrice')
     
@@ -86,21 +85,7 @@ function AdminDashboard() {
 
     setLoading(true)
     try {
-      const apiUrl = `${ADMIN_API_URL}/update-prices`
-      console.log('Updating prices:', { dayPass: dayPrice, seasonPass: seasonPrice })
-      console.log('API URL:', apiUrl)
-      console.log('Token present:', !!token)
-      console.log('Current hostname:', window.location.hostname)
-
-      // First, check if backend is reachable
-      try {
-        const healthCheck = await fetch(`${ADMIN_API_URL.replace('/admin', '')}/admin/test`)
-        console.log('Backend health check:', healthCheck.status)
-      } catch (healthErr) {
-        console.warn('Backend health check failed:', healthErr)
-      }
-
-      const res = await fetch(apiUrl, {
+      const res = await fetch(`${ADMIN_API_URL}/update-prices`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -109,10 +94,6 @@ function AdminDashboard() {
         body: JSON.stringify({ dayPass: dayPrice, seasonPass: seasonPrice })
       })
 
-      console.log('Response status:', res.status)
-      console.log('Response headers:', Object.fromEntries(res.headers.entries()))
-
-      // Get response as text first
       const responseText = await res.text()
       const contentType = res.headers.get('content-type') || ''
 
@@ -120,17 +101,10 @@ function AdminDashboard() {
       try {
         result = JSON.parse(responseText)
       } catch (parseErr) {
-        console.error('Failed to parse response as JSON')
-        console.error('Response text (first 500 chars):', responseText.substring(0, 500))
-        
         if (contentType.includes('text/html') || responseText.trim().startsWith('<!')) {
-          const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-          const errorMsg = isLocal 
-            ? `Backend server is not running or route doesn't exist.\n\nPlease ensure:\n1. Backend is running on http://localhost:5000\n2. Run: cd backend && npm start\n\nAPI URL: ${apiUrl}`
-            : `Server returned HTML instead of JSON. The route may not exist on the deployed server.\n\nPlease check:\n1. Backend is deployed to Render\n2. Latest code is deployed\n3. Route /api/admin/update-prices exists\n\nAPI URL: ${apiUrl}`
-          alert(errorMsg)
+          alert('Server error: Please check backend connection')
         } else {
-          alert(`Server error: ${res.status} ${res.statusText}\n\nResponse: ${responseText.substring(0, 200)}`)
+          alert(`Server error: ${res.status} ${res.statusText}`)
         }
         return
       }
@@ -141,35 +115,17 @@ function AdminDashboard() {
           logout()
           return
         }
-        if (res.status === 400) {
-          alert(result.message || 'Invalid price values')
-          return
-        }
-        if (res.status === 404) {
-          alert(`Route not found: ${apiUrl}\n\n${result.message || 'The update-prices route may not be deployed.'}`)
-          return
-        }
-        throw new Error(result.message || `Server error: ${res.status}`)
+        alert(result.message || 'Failed to update prices')
+        return
       }
 
       if (result.status === 'success') {
         alert('Prices updated successfully!')
         loadAdmin()
-      } else {
-        throw new Error(result.message || 'Update failed')
       }
     } catch (err) {
       console.error('Price Update Error:', err)
-      if (err.name === 'TypeError' && err.message.includes('fetch')) {
-        const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-        const errorMsg = isLocal
-          ? `Cannot connect to backend server.\n\nPlease ensure:\n1. Backend is running: cd backend && npm start\n2. Backend is on http://localhost:5000\n\nError: ${err.message}`
-          : `Cannot connect to backend server.\n\nPlease check:\n1. Backend is deployed and running\n2. CORS is configured correctly\n\nError: ${err.message}`
-        alert(errorMsg)
-      } else {
-        const errorMsg = err.message || 'Failed to update prices. Please check your connection and try again.'
-        alert(errorMsg)
-      }
+      alert('Failed to update prices. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -198,7 +154,6 @@ function AdminDashboard() {
 
   const downloadExcel = async () => {
     try {
-      // Load XLSX library dynamically
       const script = document.createElement('script')
       script.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'
       script.onload = () => {
@@ -239,7 +194,6 @@ function AdminDashboard() {
   }
 
   const deleteAllBookings = async () => {
-    // Double confirmation
     const confirm1 = window.confirm(
       '⚠️ WARNING: This will delete ALL bookings permanently!\n\n' +
       'This action cannot be undone. Are you sure you want to continue?'
@@ -277,7 +231,6 @@ function AdminDashboard() {
 
       if (data.status === 'success') {
         alert(`Successfully deleted ${data.deletedCount} booking(s)`)
-        // Reload dashboard data
         loadAdmin()
       } else {
         alert(data.message || 'Failed to delete bookings')
@@ -290,481 +243,231 @@ function AdminDashboard() {
     }
   }
 
-  return (
-    <div style={{
-      margin: 0,
-      padding: 0,
-      background: '#f6f8ff',
-      fontFamily: "'Poppins', sans-serif",
-      color: '#0e2b64',
-      minHeight: '100vh'
-    }}>
-      <div style={{
-        padding: '20px',
-        maxWidth: '1200px',
-        margin: 'auto'
-      }}>
-        <div style={{ textAlign: 'center', marginBottom: '25px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '15px', marginBottom: '10px' }}>
-            <img 
-              src="/avesham-logo.svg" 
-              alt="Avesham Logo" 
-              style={{ height: '40px', width: 'auto' }}
-              onError={(e) => {
-                e.target.style.display = 'none'
-              }}
-            />
-            <h1 style={{
-              fontSize: '30px',
-              fontWeight: 700,
-              margin: 0
-            }}>Admin Dashboard - Avesham Season 2</h1>
-          </div>
-        </div>
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: 0
+    }).format(amount)
+  }
 
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          marginBottom: '15px',
-          flexWrap: 'wrap',
-          gap: '10px'
-        }}>
-          <button
-            onClick={goHome}
-            style={{
-              background: '#10b981',
-              color: 'white',
-              border: 'none',
-              fontWeight: 600,
-              padding: '10px 18px',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              transition: '0.3s',
-              fontSize: '15px'
-            }}
-          >
-            🏠 Home
-          </button>
-          <button
-            onClick={() => setShowQRScanner(true)}
-            style={{
-              background: '#8b5cf6',
-              color: 'white',
-              border: 'none',
-              fontWeight: 600,
-              padding: '10px 18px',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              transition: '0.3s',
-              fontSize: '15px'
-            }}
-          >
-            📷 Scan QR Code
-          </button>
-          <button
-            onClick={downloadExcel}
-            style={{
-              background: '#2d72f0',
-              color: 'white',
-              border: 'none',
-              fontWeight: 600,
-              padding: '10px 18px',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              transition: '0.3s',
-              fontSize: '15px'
-            }}
-          >
-            Download Excel
-          </button>
-          <button
-            onClick={deleteAllBookings}
-            disabled={loading}
-            style={{
-              background: '#dc2626',
-              color: 'white',
-              border: 'none',
-              fontWeight: 600,
-              padding: '10px 18px',
-              borderRadius: '8px',
-              cursor: loading ? 'not-allowed' : 'pointer',
-              transition: '0.3s',
-              fontSize: '15px',
-              opacity: loading ? 0.6 : 1
-            }}
-            title="Delete all bookings (irreversible)"
-          >
-            🗑️ Delete All Data
-          </button>
-          <button
-            onClick={logout}
-            style={{
-              background: '#ff3b3b',
-              color: 'white',
-              border: 'none',
-              fontWeight: 600,
-              padding: '10px 18px',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              transition: '0.3s',
-              fontSize: '15px'
-            }}
-          >
-            Logout
-          </button>
+  return (
+    <div className="admin-dashboard">
+      <div className="admin-container">
+        {/* Header */}
+        <div className="admin-header">
+          <h1>📊 Admin Dashboard</h1>
+          <div className="admin-actions">
+            <button className="btn btn-success" onClick={goHome}>
+              🏠 Home
+            </button>
+            <button className="btn btn-primary" onClick={() => setShowQRScanner(true)}>
+              📷 Scan QR
+            </button>
+            <button className="btn btn-info" onClick={downloadExcel}>
+              📥 Export Excel
+            </button>
+            <button 
+              className="btn btn-danger" 
+              onClick={deleteAllBookings}
+              disabled={loading}
+            >
+              🗑️ Delete All Data
+            </button>
+            <button className="btn btn-secondary" onClick={logout}>
+              🚪 Logout
+            </button>
+          </div>
         </div>
 
         {/* Stats Grid */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(4, 1fr)',
-          gap: '15px',
-          marginBottom: '25px'
-        }}>
-          <div style={{
-            background: 'white',
-            padding: '18px',
-            borderRadius: '12px',
-            border: '2px solid #dce6ff',
-            textAlign: 'center',
-            boxShadow: '0 2px 10px rgba(0,0,0,0.08)'
-          }}>
-            <h3 style={{ color: '#2d72f0', marginBottom: '5px' }}>Total Revenue</h3>
-            <p>₹{stats.totalRevenue}</p>
+        <div className="stats-grid">
+          <div className="stat-card">
+            <div className="stat-card-header">
+              <div>
+                <p className="stat-card-title">Total Revenue</p>
+                <p className="stat-card-value">{formatCurrency(stats.totalRevenue)}</p>
+              </div>
+              <div className="stat-card-icon revenue">💰</div>
+            </div>
           </div>
-          <div style={{
-            background: 'white',
-            padding: '18px',
-            borderRadius: '12px',
-            border: '2px solid #dce6ff',
-            textAlign: 'center',
-            boxShadow: '0 2px 10px rgba(0,0,0,0.08)'
-          }}>
-            <h3 style={{ color: '#2d72f0', marginBottom: '5px' }}>Total Tickets</h3>
-            <p>{stats.totalTickets}</p>
+
+          <div className="stat-card">
+            <div className="stat-card-header">
+              <div>
+                <p className="stat-card-title">Total Tickets</p>
+                <p className="stat-card-value">{stats.totalTickets}</p>
+              </div>
+              <div className="stat-card-icon tickets">🎫</div>
+            </div>
           </div>
-          <div style={{
-            background: 'white',
-            padding: '18px',
-            borderRadius: '12px',
-            border: '2px solid #dce6ff',
-            textAlign: 'center',
-            boxShadow: '0 2px 10px rgba(0,0,0,0.08)'
-          }}>
-            <h3 style={{ color: '#2d72f0', marginBottom: '5px' }}>Day Pass Revenue</h3>
-            <p>₹{stats.dayPassRevenue}</p>
+
+          <div className="stat-card">
+            <div className="stat-card-header">
+              <div>
+                <p className="stat-card-title">Day Pass Revenue</p>
+                <p className="stat-card-value">{formatCurrency(stats.dayPassRevenue)}</p>
+              </div>
+              <div className="stat-card-icon day">📅</div>
+            </div>
           </div>
-          <div style={{
-            background: 'white',
-            padding: '18px',
-            borderRadius: '12px',
-            border: '2px solid #dce6ff',
-            textAlign: 'center',
-            boxShadow: '0 2px 10px rgba(0,0,0,0.08)'
-          }}>
-            <h3 style={{ color: '#2d72f0', marginBottom: '5px' }}>Season Pass Revenue</h3>
-            <p>₹{stats.seasonPassRevenue}</p>
+
+          <div className="stat-card">
+            <div className="stat-card-header">
+              <div>
+                <p className="stat-card-title">Season Pass Revenue</p>
+                <p className="stat-card-value">{formatCurrency(stats.seasonPassRevenue)}</p>
+              </div>
+              <div className="stat-card-icon season">⭐</div>
+            </div>
           </div>
         </div>
 
         {/* Price Update Section */}
-        <div style={{
-          background: 'white',
-          borderRadius: '12px',
-          padding: '18px',
-          marginBottom: '25px',
-          border: '2px solid #dce6ff'
-        }}>
-          <h2 style={{ marginBottom: '15px', textAlign: 'center' }}>Update Ticket Prices</h2>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(2, 1fr)',
-            gap: '15px'
-          }}>
-            <div>
-              <label style={{ fontWeight: 600, marginBottom: '5px', display: 'block' }}>
-                Day Pass Price (₹)
-              </label>
+        <div className="content-card">
+          <h2>⚙️ Update Ticket Prices</h2>
+          <div className="price-form">
+            <div className="form-group">
+              <label htmlFor="dayPassPrice">Day Pass Price (₹)</label>
               <input
                 id="dayPassPrice"
                 type="number"
                 value={prices.dayPass}
                 onChange={(e) => setPrices({ ...prices, dayPass: e.target.value })}
                 placeholder="199"
-                style={{
-                  width: '100%',
-                  padding: '10px',
-                  border: '1px solid #bcc8e6',
-                  borderRadius: '8px'
-                }}
               />
             </div>
-            <div>
-              <label style={{ fontWeight: 600, marginBottom: '5px', display: 'block' }}>
-                Season Pass Price (₹)
-              </label>
+            <div className="form-group">
+              <label htmlFor="seasonPassPrice">Season Pass Price (₹)</label>
               <input
                 id="seasonPassPrice"
                 type="number"
                 value={prices.seasonPass}
                 onChange={(e) => setPrices({ ...prices, seasonPass: e.target.value })}
                 placeholder="699"
-                style={{
-                  width: '100%',
-                  padding: '10px',
-                  border: '1px solid #bcc8e6',
-                  borderRadius: '8px'
-                }}
               />
             </div>
           </div>
           <button
+            className="btn btn-success"
             onClick={updatePrices}
             disabled={loading}
-            style={{
-              marginTop: '15px',
-              background: loading ? '#94a3b8' : '#0e8c1f',
-              color: 'white',
-              width: '100%',
-              padding: '12px',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: loading ? 'not-allowed' : 'pointer',
-              fontWeight: 600
-            }}
+            style={{ width: '100%', marginTop: '1rem' }}
           >
-            {loading ? 'Updating...' : 'Save Prices'}
+            {loading ? '⏳ Updating...' : '💾 Save Prices'}
           </button>
         </div>
 
         {/* Bookings Table */}
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '15px'
-        }}>
-          <h2 style={{ margin: 0 }}>All Bookings</h2>
-          <div style={{ position: 'relative', width: '300px' }}>
-            <input
-              type="text"
-              placeholder="Search bookings..."
-              value={searchQuery}
-              onChange={(e) => filterBookings(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '10px 40px 10px 15px',
-                border: '2px solid #dce6ff',
-                borderRadius: '8px',
-                fontSize: '15px',
-                outline: 'none'
-              }}
-            />
-            <span style={{
-              position: 'absolute',
-              right: '15px',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              color: '#2d72f0',
-              fontSize: '18px'
-            }}>🔍</span>
+        <div className="content-card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+            <h2 style={{ margin: 0 }}>📋 All Bookings ({bookings.length})</h2>
+            <div className="search-container" style={{ width: '100%', maxWidth: '400px' }}>
+              <input
+                type="text"
+                className="search-input"
+                placeholder="Search by name, email, phone, serial number..."
+                value={searchQuery}
+                onChange={(e) => filterBookings(e.target.value)}
+              />
+              <span className="search-icon">🔍</span>
+            </div>
+          </div>
+
+          <div className="table-container">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th className="text-center">#</th>
+                  <th>Serial</th>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Phone</th>
+                  <th>Ticket Type</th>
+                  <th className="text-center">Qty</th>
+                  <th className="text-center">Amount</th>
+                  <th>Payment ID</th>
+                  <th>Date</th>
+                  <th className="text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {bookings.length > 0 ? (
+                  bookings.map((booking, index) => (
+                    <tr key={index}>
+                      <td className="text-center">{index + 1}</td>
+                      <td>{booking.serialNumber || '-'}</td>
+                      <td>{booking.fullName || '-'}</td>
+                      <td>{booking.email || '-'}</td>
+                      <td>{booking.phone || '-'}</td>
+                      <td>{booking.ticketType || '-'}</td>
+                      <td className="text-center">{booking.quantity || 0}</td>
+                      <td className="text-center">{formatCurrency(booking.totalAmount || 0)}</td>
+                      <td style={{ fontSize: '0.75rem', wordBreak: 'break-word' }}>
+                        {booking.paymentId || '-'}
+                      </td>
+                      <td style={{ fontSize: '0.75rem' }}>
+                        {booking.timestamp ? new Date(booking.timestamp).toLocaleString() : '-'}
+                      </td>
+                      <td>
+                        {booking.serialNumber && (
+                          <div className="action-buttons">
+                            <button
+                              className="btn btn-sm btn-view"
+                              onClick={() => {
+                                window.open(`/success?serial=${booking.serialNumber}`, '_blank')
+                              }}
+                              title="View success page"
+                            >
+                              👁️ View
+                            </button>
+                            <button
+                              className="btn btn-sm btn-download"
+                              onClick={async () => {
+                                try {
+                                  const token = localStorage.getItem('adminToken')
+                                  const res = await fetch(`${ADMIN_API_URL}/download-ticket/${booking.serialNumber}`, {
+                                    headers: { 'Authorization': `Bearer ${token}` }
+                                  })
+                                  if (res.ok) {
+                                    const blob = await res.blob()
+                                    const url = URL.createObjectURL(blob)
+                                    const link = document.createElement('a')
+                                    link.href = url
+                                    link.download = `Avesham_Ticket_${booking.serialNumber}.pdf`
+                                    document.body.appendChild(link)
+                                    link.click()
+                                    document.body.removeChild(link)
+                                    URL.revokeObjectURL(url)
+                                  } else {
+                                    alert('Failed to download ticket PDF')
+                                  }
+                                } catch (err) {
+                                  console.error('Download error:', err)
+                                  alert('Failed to download ticket PDF')
+                                }
+                              }}
+                              title="Download PDF"
+                            >
+                              📥 PDF
+                            </button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="11" className="empty-state">
+                      <div className="empty-state-icon">📭</div>
+                      <p>No bookings found</p>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
-
-        <table style={{
-          width: '100%',
-          borderCollapse: 'collapse',
-          borderRadius: '12px',
-          overflow: 'hidden',
-          background: 'white'
-        }}>
-          <thead>
-            <tr>
-              <th style={{
-                padding: '10px',
-                borderBottom: '1px solid #e3e8f5',
-                textAlign: 'center',
-                background: '#2d72f0',
-                color: 'white',
-                fontWeight: 600
-              }}>#</th>
-              <th style={{
-                padding: '10px',
-                borderBottom: '1px solid #e3e8f5',
-                textAlign: 'center',
-                background: '#2d72f0',
-                color: 'white',
-                fontWeight: 600
-              }}>Serial</th>
-              <th style={{
-                padding: '10px',
-                borderBottom: '1px solid #e3e8f5',
-                textAlign: 'center',
-                background: '#2d72f0',
-                color: 'white',
-                fontWeight: 600
-              }}>Name</th>
-              <th style={{
-                padding: '10px',
-                borderBottom: '1px solid #e3e8f5',
-                textAlign: 'center',
-                background: '#2d72f0',
-                color: 'white',
-                fontWeight: 600
-              }}>Email</th>
-              <th style={{
-                padding: '10px',
-                borderBottom: '1px solid #e3e8f5',
-                textAlign: 'center',
-                background: '#2d72f0',
-                color: 'white',
-                fontWeight: 600
-              }}>Phone</th>
-              <th style={{
-                padding: '10px',
-                borderBottom: '1px solid #e3e8f5',
-                textAlign: 'center',
-                background: '#2d72f0',
-                color: 'white',
-                fontWeight: 600
-              }}>Ticket</th>
-              <th style={{
-                padding: '10px',
-                borderBottom: '1px solid #e3e8f5',
-                textAlign: 'center',
-                background: '#2d72f0',
-                color: 'white',
-                fontWeight: 600
-              }}>Qty</th>
-              <th style={{
-                padding: '10px',
-                borderBottom: '1px solid #e3e8f5',
-                textAlign: 'center',
-                background: '#2d72f0',
-                color: 'white',
-                fontWeight: 600
-              }}>Amount</th>
-              <th style={{
-                padding: '10px',
-                borderBottom: '1px solid #e3e8f5',
-                textAlign: 'center',
-                background: '#2d72f0',
-                color: 'white',
-                fontWeight: 600
-              }}>Payment ID</th>
-              <th style={{
-                padding: '10px',
-                borderBottom: '1px solid #e3e8f5',
-                textAlign: 'center',
-                background: '#2d72f0',
-                color: 'white',
-                fontWeight: 600
-              }}>Date</th>
-              <th style={{
-                padding: '10px',
-                borderBottom: '1px solid #e3e8f5',
-                textAlign: 'center',
-                background: '#2d72f0',
-                color: 'white',
-                fontWeight: 600
-              }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {bookings.length > 0 ? (
-              bookings.map((booking, index) => (
-                <tr key={index} style={{
-                  background: index % 2 === 0 ? 'white' : '#f1f5ff'
-                }}>
-                  <td style={{ padding: '10px', textAlign: 'center' }}>{index + 1}</td>
-                  <td style={{ padding: '10px', textAlign: 'center' }}>{booking.serialNumber || '-'}</td>
-                  <td style={{ padding: '10px', textAlign: 'center' }}>{booking.fullName || '-'}</td>
-                  <td style={{ padding: '10px', textAlign: 'center' }}>{booking.email || '-'}</td>
-                  <td style={{ padding: '10px', textAlign: 'center' }}>{booking.phone || '-'}</td>
-                  <td style={{ padding: '10px', textAlign: 'center' }}>{booking.ticketType || '-'}</td>
-                  <td style={{ padding: '10px', textAlign: 'center' }}>{booking.quantity || 0}</td>
-                  <td style={{ padding: '10px', textAlign: 'center' }}>₹{booking.totalAmount || 0}</td>
-                  <td style={{ padding: '10px', textAlign: 'center' }}>{booking.paymentId || '-'}</td>
-                  <td style={{ padding: '10px', textAlign: 'center' }}>
-                    {booking.timestamp ? new Date(booking.timestamp).toLocaleString() : '-'}
-                  </td>
-                  <td style={{ padding: '10px', textAlign: 'center' }}>
-                    {booking.serialNumber && (
-                      <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
-                        <button
-                          onClick={() => {
-                            window.open(`/success?serial=${booking.serialNumber}`, '_blank')
-                          }}
-                          style={{
-                            background: '#2563eb',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '6px',
-                            padding: '6px 12px',
-                            cursor: 'pointer',
-                            fontSize: '12px',
-                            fontWeight: 600
-                          }}
-                          title="View success page"
-                        >
-                          👁️ View
-                        </button>
-                        <button
-                          onClick={async () => {
-                            try {
-                              const token = localStorage.getItem('adminToken')
-                              const res = await fetch(`${ADMIN_API_URL}/download-ticket/${booking.serialNumber}`, {
-                                headers: { 'Authorization': `Bearer ${token}` }
-                              })
-                              if (res.ok) {
-                                const blob = await res.blob()
-                                const url = URL.createObjectURL(blob)
-                                const link = document.createElement('a')
-                                link.href = url
-                                link.download = `Avesham_Ticket_${booking.serialNumber}.pdf`
-                                document.body.appendChild(link)
-                                link.click()
-                                document.body.removeChild(link)
-                                URL.revokeObjectURL(url)
-                              } else {
-                                alert('Failed to download ticket PDF')
-                              }
-                            } catch (err) {
-                              console.error('Download error:', err)
-                              alert('Failed to download ticket PDF')
-                            }
-                          }}
-                          style={{
-                            background: '#10b981',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '6px',
-                            padding: '6px 12px',
-                            cursor: 'pointer',
-                            fontSize: '12px',
-                            fontWeight: 600
-                          }}
-                          title="Download PDF"
-                        >
-                          📥 PDF
-                        </button>
-                      </div>
-                    )}
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan="11" style={{
-                  textAlign: 'center',
-                  padding: '20px'
-                }}>
-                  No bookings found
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
 
         {/* QR Scanner Modal */}
         {showQRScanner && (
@@ -772,8 +475,6 @@ function AdminDashboard() {
             onClose={() => setShowQRScanner(false)}
             onVerify={(booking) => {
               console.log('QR Verified:', booking)
-              // Optionally refresh bookings after verification
-              // loadAdmin()
             }}
           />
         )}
@@ -783,4 +484,3 @@ function AdminDashboard() {
 }
 
 export default AdminDashboard
-
