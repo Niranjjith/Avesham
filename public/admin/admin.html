@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Avesham Admin Dashboard</title>
+
+<style>
+body {
+    margin: 0;
+    padding: 0;
+    background: #f6f8ff;
+    font-family: 'Poppins', sans-serif;
+    color: #0e2b64;
+}
+
+.dashboard-container {
+    padding: 20px;
+    max-width: 1200px;
+    margin: auto;
+}
+
+h1 {
+    text-align: center;
+    margin-bottom: 25px;
+    font-size: 30px;
+    font-weight: 700;
+}
+
+.top-buttons {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 15px;
+}
+
+button {
+    border: none;
+    font-weight: 600;
+    padding: 10px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: 0.3s;
+    font-size: 15px;
+}
+
+.download-btn {
+    background: #2d72f0;
+    color: white;
+}
+
+.download-btn:hover {
+    background: #1a5ad1;
+}
+
+.logout-btn {
+    background: #ff3b3b;
+    color: white;
+}
+
+.logout-btn:hover {
+    background: #d21c1c;
+}
+
+/* Stats */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+.stat-card {
+    background: white;
+    padding: 18px;
+    border-radius: 12px;
+    border: 2px solid #dce6ff;
+    text-align: center;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+}
+
+.stat-card h3 {
+    color: #2d72f0;
+    margin-bottom: 5px;
+}
+
+/* Table */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    border-radius: 12px;
+    overflow: hidden;
+    background: white;
+}
+
+th, td {
+    padding: 10px;
+    border-bottom: 1px solid #e3e8f5;
+    text-align: center;
+}
+
+th {
+    background: #2d72f0;
+    color: white;
+    font-weight: 600;
+}
+
+tbody tr:nth-child(even) {
+    background: #f1f5ff;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 600px) {
+    .stats-grid {
+        grid-template-columns: repeat(1, 1fr);
+    }
+
+    .top-buttons {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    h1 {
+        font-size: 24px;
+    }
+
+    table {
+        font-size: 13px;
+    }
+}
+</style>
+
+</head>
+<body>
+
+<div class="dashboard-container">
+    <h1>Admin Dashboard - Avesham Season 2</h1>
+
+    <div class="top-buttons">
+        <button class="download-btn" onclick="downloadExcel()">Download Excel</button>
+        <button class="logout-btn" onclick="logout()">Logout</button>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card"><h3>Total Revenue</h3><p id="totalRevenue">₹0</p></div>
+        <div class="stat-card"><h3>Total Tickets</h3><p id="totalTickets">0</p></div>
+        <div class="stat-card"><h3>Day Pass Revenue</h3><p id="dayPassRevenue">₹0</p></div>
+        <div class="stat-card"><h3>Season Pass Revenue</h3><p id="seasonPassRevenue">₹0</p></div>
+    </div>
+
+    <h2>All Bookings</h2>
+    <table id="bookingTable">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Serial</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Ticket</th>
+                <th>Qty</th>
+                <th>Amount</th>
+                <th>Payment ID</th>
+                <th>Date</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</div>
+
+<script src="../js/admin.js"></script>
+</body>
+</html>

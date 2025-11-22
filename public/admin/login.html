@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Avesham Admin Login</title>
+
+<style>
+body {
+    margin: 0;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #ffffff;
+    font-family: 'Poppins', sans-serif;
+}
+
+.login-container {
+    width: 360px;
+    background: #ffffff;
+    color: #0e2b64;
+    border-radius: 14px;
+    padding: 35px 30px;
+    box-shadow: 0 0 20px rgba(0,0,0,0.15);
+    border-top: 6px solid #2d72f0;
+}
+
+.login-container h2 {
+    text-align: center;
+    font-size: 26px;
+    font-weight: 600;
+    margin-bottom: 25px;
+    color: #0e2b64;
+}
+
+.login-container input {
+    width: 100%;
+    padding: 14px 12px;
+    margin-top: 12px;
+    border-radius: 8px;
+    border: 1.8px solid #d1d9e6;
+    font-size: 15px;
+    outline: none;
+    transition: 0.3s;
+}
+
+.login-container input:focus {
+    border-color: #2d72f0;
+    box-shadow: 0 0 6px rgba(45,114,240,0.3);
+}
+
+button {
+    width: 100%;
+    margin-top: 20px;
+    padding: 14px;
+    background: #2d72f0;
+    border-radius: 8px;
+    border: none;
+    font-weight: 600;
+    font-size: 17px;
+    color: white;
+    cursor: pointer;
+    transition: 0.25s;
+}
+
+button:hover {
+    background: #1a5ad1;
+}
+
+#error {
+    display: none;
+    text-align: center;
+    color: red;
+    margin-top: 12px;
+    font-size: 15px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="login-container">
+    <h2>Admin Login</h2>
+    <input type="text" id="username" placeholder="Admin Username">
+    <input type="password" id="password" placeholder="Password">
+    <button onclick="loginAdmin()">Login</button>
+    <p id="error">Invalid credentials</p>
+</div>
+
+<script>
+function loginAdmin() {
+    const user = document.getElementById("username").value.trim();
+    const pass = document.getElementById("password").value.trim();
+
+    if (user === "avesham" && pass === "avesham1234") {
+
+        // Store simple token
+        localStorage.setItem("adminToken", "AVESHAM_ADMIN_2025");
+
+        window.location.href = "./admin.html"; 
+    } else {
+        document.getElementById("error").style.display = "block";
+        setTimeout(() => {
+            document.getElementById("error").style.display = "none";
+        }, 2500);
+    }
+}
+</script>
+
+</body>
+</html>
