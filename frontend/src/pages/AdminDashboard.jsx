@@ -304,12 +304,23 @@ function AdminDashboard() {
         maxWidth: '1200px',
         margin: 'auto'
       }}>
-        <h1 style={{
-          textAlign: 'center',
-          marginBottom: '25px',
-          fontSize: '30px',
-          fontWeight: 700
-        }}>Admin Dashboard - Avesham Season 2</h1>
+        <div style={{ textAlign: 'center', marginBottom: '25px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '15px', marginBottom: '10px' }}>
+            <img 
+              src="/avesham-logo.svg" 
+              alt="Avesham Logo" 
+              style={{ height: '40px', width: 'auto' }}
+              onError={(e) => {
+                e.target.style.display = 'none'
+              }}
+            />
+            <h1 style={{
+              fontSize: '30px',
+              fontWeight: 700,
+              margin: 0
+            }}>Admin Dashboard - Avesham Season 2</h1>
+          </div>
+        </div>
 
         <div style={{
           display: 'flex',

@@ -177,7 +177,9 @@ function Home() {
       {/* Navigation */}
       <nav>
         <div className="nav-container">
-          <div className="logo">AVESHAM S2</div>
+          <div className="logo">
+            <span>AVESHAM S2</span>
+          </div>
           <button className="nav-btn" onClick={scrollToBooking}>Book Now</button>
         </div>
       </nav>
@@ -347,7 +349,6 @@ function Home() {
           <div className="media-partner">
             <h4>Media Partner</h4>
             <div className="partner-logo">
-              <img src="/rawd-logoo.png" alt="Rawd Logo" />
             </div>
           </div>
         </div>
