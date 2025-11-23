@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { fetchPrices, createOrder, verifyPayment, RAZORPAY_KEY_ID } from '../utils/api'
+import { fetchPrices, createOrder, verifyPayment, RAZORPAY_KEY_ID, PUBLIC_API_URL } from '../utils/api'
 import { openRazorpayCheckout } from '../utils/razorpay'
 import '../styles/style.css'
 
@@ -131,6 +131,28 @@ function Home() {
               downloadUrl: result.downloadUrl
             }
             localStorage.setItem('lastBooking', JSON.stringify(bookingData))
+            
+            // Auto-download PDF receipt immediately after successful payment
+            try {
+              const pdfUrl = `${PUBLIC_API_URL}/download-ticket/${result.booking.serialNumber}`
+              
+              // Fetch PDF and trigger download
+              const pdfResponse = await fetch(pdfUrl)
+              if (pdfResponse.ok) {
+                const blob = await pdfResponse.blob()
+                const url = URL.createObjectURL(blob)
+                const link = document.createElement('a')
+                link.href = url
+                link.download = `Avesham_Ticket_${result.booking.serialNumber}.pdf`
+                document.body.appendChild(link)
+                link.click()
+                document.body.removeChild(link)
+                URL.revokeObjectURL(url)
+              }
+            } catch (pdfError) {
+              console.error('PDF download error:', pdfError)
+              // Don't block navigation if PDF download fails
+            }
             
             // Reset form
             setFormData({ fullName: '', email: '', phone: '', quantity: '' })

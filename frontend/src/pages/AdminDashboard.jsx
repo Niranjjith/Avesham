@@ -1,8 +1,36 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ADMIN_API_URL } from '../utils/api'
+import { ADMIN_API_URL, PUBLIC_API_URL } from '../utils/api'
 import QRScanner from '../components/QRScanner'
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+} from 'chart.js'
+import { Line, Bar, Doughnut } from 'react-chartjs-2'
 import '../styles/admin.css'
+
+// Register Chart.js components
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+)
 
 function AdminDashboard() {
   const navigate = useNavigate()
@@ -65,6 +93,59 @@ function AdminDashboard() {
       alert('Failed to load dashboard data. Please refresh the page.')
     }
   }
+
+  // Calculate chart data from bookings
+  const chartData = useMemo(() => {
+    if (!allBookings.length) {
+      return {
+        revenueByDate: { labels: [], data: [] },
+        ticketTypeDistribution: { dayPass: 0, seasonPass: 0 },
+        revenueByType: { dayPass: 0, seasonPass: 0 }
+      }
+    }
+
+    // Group bookings by date
+    const revenueByDateMap = {}
+    let dayPassCount = 0
+    let seasonPassCount = 0
+    let dayPassRevenue = 0
+    let seasonPassRevenue = 0
+
+    allBookings.forEach(booking => {
+      const date = new Date(booking.timestamp).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })
+      if (!revenueByDateMap[date]) {
+        revenueByDateMap[date] = 0
+      }
+      revenueByDateMap[date] += booking.totalAmount || 0
+
+      if (booking.ticketType === 'Day Pass') {
+        dayPassCount += booking.quantity || 0
+        dayPassRevenue += booking.totalAmount || 0
+      } else if (booking.ticketType === 'Season Pass') {
+        seasonPassCount += booking.quantity || 0
+        seasonPassRevenue += booking.totalAmount || 0
+      }
+    })
+
+    const sortedDates = Object.keys(revenueByDateMap).sort((a, b) => {
+      return new Date(a) - new Date(b)
+    })
+
+    return {
+      revenueByDate: {
+        labels: sortedDates,
+        data: sortedDates.map(date => revenueByDateMap[date])
+      },
+      ticketTypeDistribution: {
+        dayPass: dayPassCount,
+        seasonPass: seasonPassCount
+      },
+      revenueByType: {
+        dayPass: dayPassRevenue,
+        seasonPass: seasonPassRevenue
+      }
+    }
+  }, [allBookings])
 
   const updatePrices = async () => {
     const dayPriceInput = document.getElementById('dayPassPrice')
@@ -251,12 +332,173 @@ function AdminDashboard() {
     }).format(amount)
   }
 
+  const openPDFInNewWindow = async (serialNumber) => {
+    try {
+      const pdfUrl = `${PUBLIC_API_URL}/download-ticket/${serialNumber}`
+      window.open(pdfUrl, '_blank')
+    } catch (err) {
+      console.error('PDF open error:', err)
+      alert('Failed to open PDF. Please try again.')
+    }
+  }
+
+  const downloadPDF = async (serialNumber) => {
+    try {
+      const token = localStorage.getItem('adminToken')
+      const res = await fetch(`${ADMIN_API_URL}/download-ticket/${serialNumber}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      if (res.ok) {
+        const blob = await res.blob()
+        const url = URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = `Avesham_Ticket_${serialNumber}.pdf`
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        URL.revokeObjectURL(url)
+      } else {
+        alert('Failed to download ticket PDF')
+      }
+    } catch (err) {
+      console.error('Download error:', err)
+      alert('Failed to download ticket PDF')
+    }
+  }
+
+  // Chart configurations
+  const revenueChartData = {
+    labels: chartData.revenueByDate.labels,
+    datasets: [{
+      label: 'Daily Revenue',
+      data: chartData.revenueByDate.data,
+      borderColor: 'rgb(102, 126, 234)',
+      backgroundColor: 'rgba(102, 126, 234, 0.1)',
+      fill: true,
+      tension: 0.4,
+      pointRadius: 4,
+      pointHoverRadius: 6,
+      pointBackgroundColor: 'rgb(102, 126, 234)',
+      pointBorderColor: '#fff',
+      pointBorderWidth: 2
+    }]
+  }
+
+  const ticketTypeChartData = {
+    labels: ['Day Pass', 'Season Pass'],
+    datasets: [{
+      data: [chartData.ticketTypeDistribution.dayPass, chartData.ticketTypeDistribution.seasonPass],
+      backgroundColor: [
+        'rgba(79, 172, 254, 0.8)',
+        'rgba(67, 233, 123, 0.8)'
+      ],
+      borderColor: [
+        'rgba(79, 172, 254, 1)',
+        'rgba(67, 233, 123, 1)'
+      ],
+      borderWidth: 2
+    }]
+  }
+
+  const revenueByTypeChartData = {
+    labels: ['Day Pass Revenue', 'Season Pass Revenue'],
+    datasets: [{
+      label: 'Revenue (₹)',
+      data: [chartData.revenueByType.dayPass, chartData.revenueByType.seasonPass],
+      backgroundColor: [
+        'rgba(79, 172, 254, 0.8)',
+        'rgba(67, 233, 123, 0.8)'
+      ],
+      borderColor: [
+        'rgba(79, 172, 254, 1)',
+        'rgba(67, 233, 123, 1)'
+      ],
+      borderWidth: 2,
+      borderRadius: 8
+    }]
+  }
+
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: true,
+        position: 'top',
+        labels: {
+          usePointStyle: true,
+          padding: 15,
+          font: {
+            size: 12,
+            weight: '600'
+          }
+        }
+      },
+      tooltip: {
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        padding: 12,
+        titleFont: { size: 14, weight: 'bold' },
+        bodyFont: { size: 13 },
+        cornerRadius: 8
+      }
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        grid: {
+          color: 'rgba(0, 0, 0, 0.05)'
+        },
+        ticks: {
+          font: { size: 11 }
+        }
+      },
+      x: {
+        grid: {
+          display: false
+        },
+        ticks: {
+          font: { size: 11 }
+        }
+      }
+    }
+  }
+
+  const doughnutOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: true,
+        position: 'bottom',
+        labels: {
+          usePointStyle: true,
+          padding: 15,
+          font: {
+            size: 12,
+            weight: '600'
+          }
+        }
+      },
+      tooltip: {
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        padding: 12,
+        titleFont: { size: 14, weight: 'bold' },
+        bodyFont: { size: 13 },
+        cornerRadius: 8
+      }
+    }
+  }
+
   return (
     <div className="admin-dashboard">
       <div className="admin-container">
         {/* Header */}
         <div className="admin-header">
-          <h1>📊 Admin Dashboard</h1>
+          <div>
+            <h1>📊 Admin Dashboard</h1>
+            <p className="header-subtitle">Avesham Season 2 - Analytics & Management</p>
+          </div>
           <div className="admin-actions">
             <button className="btn btn-success" onClick={goHome}>
               🏠 Home
@@ -319,6 +561,42 @@ function AdminDashboard() {
                 <p className="stat-card-value">{formatCurrency(stats.seasonPassRevenue)}</p>
               </div>
               <div className="stat-card-icon season">⭐</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Charts Section */}
+        <div className="charts-grid">
+          <div className="content-card chart-card">
+            <h2>📈 Revenue Trend</h2>
+            <div className="chart-container">
+              {chartData.revenueByDate.labels.length > 0 ? (
+                <Line data={revenueChartData} options={chartOptions} />
+              ) : (
+                <div className="empty-chart">No data available</div>
+              )}
+            </div>
+          </div>
+
+          <div className="content-card chart-card">
+            <h2>🎫 Ticket Distribution</h2>
+            <div className="chart-container">
+              {chartData.ticketTypeDistribution.dayPass + chartData.ticketTypeDistribution.seasonPass > 0 ? (
+                <Doughnut data={ticketTypeChartData} options={doughnutOptions} />
+              ) : (
+                <div className="empty-chart">No data available</div>
+              )}
+            </div>
+          </div>
+
+          <div className="content-card chart-card">
+            <h2>💵 Revenue by Ticket Type</h2>
+            <div className="chart-container">
+              {chartData.revenueByType.dayPass + chartData.revenueByType.seasonPass > 0 ? (
+                <Bar data={revenueByTypeChartData} options={chartOptions} />
+              ) : (
+                <div className="empty-chart">No data available</div>
+              )}
             </div>
           </div>
         </div>
@@ -414,39 +692,14 @@ function AdminDashboard() {
                           <div className="action-buttons">
                             <button
                               className="btn btn-sm btn-view"
-                              onClick={() => {
-                                window.open(`/success?serial=${booking.serialNumber}`, '_blank')
-                              }}
-                              title="View success page"
+                              onClick={() => openPDFInNewWindow(booking.serialNumber)}
+                              title="View PDF in new window"
                             >
                               👁️ View
                             </button>
                             <button
                               className="btn btn-sm btn-download"
-                              onClick={async () => {
-                                try {
-                                  const token = localStorage.getItem('adminToken')
-                                  const res = await fetch(`${ADMIN_API_URL}/download-ticket/${booking.serialNumber}`, {
-                                    headers: { 'Authorization': `Bearer ${token}` }
-                                  })
-                                  if (res.ok) {
-                                    const blob = await res.blob()
-                                    const url = URL.createObjectURL(blob)
-                                    const link = document.createElement('a')
-                                    link.href = url
-                                    link.download = `Avesham_Ticket_${booking.serialNumber}.pdf`
-                                    document.body.appendChild(link)
-                                    link.click()
-                                    document.body.removeChild(link)
-                                    URL.revokeObjectURL(url)
-                                  } else {
-                                    alert('Failed to download ticket PDF')
-                                  }
-                                } catch (err) {
-                                  console.error('Download error:', err)
-                                  alert('Failed to download ticket PDF')
-                                }
-                              }}
+                              onClick={() => downloadPDF(booking.serialNumber)}
                               title="Download PDF"
                             >
                               📥 PDF
